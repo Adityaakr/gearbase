@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/sdk" },
+    { "path": "./packages/clients" },
+    { "path": "./packages/agent-runner" },
+    { "path": "./apps/showcase" },
+    { "path": "./apps/canvas-web" },
+    { "path": "./apps/poll-web" },
+    { "path": "./apps/fth-web" }
+  ]
+}

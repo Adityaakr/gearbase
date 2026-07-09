@@ -2,9 +2,10 @@
 .env.*
 !.env.example
 node_modules/
+.pnpm-store/
 dist/
+dist-types/
 target/
-pnpm-lock.yaml
 package-lock.json
 yarn.lock
 .DS_Store

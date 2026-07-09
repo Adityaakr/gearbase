@@ -1,0 +1,27 @@
+[workspace]
+resolver = "3"
+members = [
+  "programs/gearbase-core",
+  "programs/room-canvas",
+  "programs/room-canvas/app",
+  "programs/room-canvas/client",
+]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Aditya Krishna Rao <08quant@gmail.com>"]
+edition = "2024"
+rust-version = "1.95"
+repository = "https://github.com/Adityaakr/gearbase"
+license = "MIT"
+keywords = ["gear", "vara", "vara-eth", "sails", "realtime"]
+categories = ["cryptography::cryptocurrencies", "network-programming", "wasm"]
+
+[workspace.dependencies]
+gearbase-core = { path = "programs/gearbase-core" }
+room-canvas-app = { path = "programs/room-canvas/app" }
+room-canvas-client = { path = "programs/room-canvas/client" }
+parity-scale-codec = { version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2", default-features = false, features = ["derive"] }
+sails-rs = "=1.0.1"
+tokio = "1.52.3"
