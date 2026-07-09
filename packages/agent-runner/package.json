@@ -9,5 +9,9 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@gearbase/sdk": "workspace:*",
+    "yaml": "^2.8.1"
   }
 }
