@@ -5374,6 +5374,64 @@ dependencies = [
 ]
 
 [[package]]
+name = "room-fth"
+version = "0.1.0"
+dependencies = [
+ "room-fth-app",
+ "room-fth-client",
+ "sails-rs",
+ "tiny-keccak",
+ "tokio",
+]
+
+[[package]]
+name = "room-fth-app"
+version = "0.1.0"
+dependencies = [
+ "gearbase-core",
+ "parity-scale-codec",
+ "sails-rs",
+ "scale-info",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "room-fth-client"
+version = "0.1.0"
+dependencies = [
+ "room-fth-app",
+ "sails-rs",
+]
+
+[[package]]
+name = "room-poll"
+version = "0.1.0"
+dependencies = [
+ "room-poll-app",
+ "room-poll-client",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "room-poll-app"
+version = "0.1.0"
+dependencies = [
+ "gearbase-core",
+ "parity-scale-codec",
+ "sails-rs",
+ "scale-info",
+]
+
+[[package]]
+name = "room-poll-client"
+version = "0.1.0"
+dependencies = [
+ "room-poll-app",
+ "sails-rs",
+]
+
+[[package]]
 name = "ruint"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

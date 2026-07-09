@@ -97,6 +97,8 @@ pub enum RoomError {
     NotOwner,
     AlreadyJoined,
     NotJoined,
+    AlreadySeated,
+    SeatOccupied,
     NotAllowed,
     ParticipantsFull,
     NameTooLong {
@@ -113,6 +115,12 @@ pub enum RoomError {
     InvalidKind,
     InvalidBounds,
     InvalidColor,
+    WrongPhase,
+    AlreadyVoted,
+    CommitMismatch,
+    RevealTimeoutPending {
+        remaining_secs: u32,
+    },
     CooldownActive {
         retry_after_secs: u32,
     },
@@ -440,6 +448,30 @@ impl RoomCore {
             return Err(RoomError::NotJoined);
         }
 
+        Ok(self.sequencer.next_seq())
+    }
+
+    pub fn owner_write(
+        &mut self,
+        caller: ActorId,
+        payload_len: usize,
+        now_secs: u64,
+    ) -> Result<u64, RoomError> {
+        self.check_write(caller, payload_len, now_secs)?;
+        if caller != self.owner() {
+            return Err(RoomError::NotOwner);
+        }
+
+        Ok(self.sequencer.next_seq())
+    }
+
+    pub fn public_write(
+        &mut self,
+        caller: ActorId,
+        payload_len: usize,
+        now_secs: u64,
+    ) -> Result<u64, RoomError> {
+        self.check_write(caller, payload_len, now_secs)?;
         Ok(self.sequencer.next_seq())
     }
 

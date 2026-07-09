@@ -5,6 +5,12 @@ members = [
   "programs/room-canvas",
   "programs/room-canvas/app",
   "programs/room-canvas/client",
+  "programs/room-fth",
+  "programs/room-fth/app",
+  "programs/room-fth/client",
+  "programs/room-poll",
+  "programs/room-poll/app",
+  "programs/room-poll/client",
 ]
 
 [workspace.package]
@@ -21,6 +27,10 @@ categories = ["cryptography::cryptocurrencies", "network-programming", "wasm"]
 gearbase-core = { path = "programs/gearbase-core" }
 room-canvas-app = { path = "programs/room-canvas/app" }
 room-canvas-client = { path = "programs/room-canvas/client" }
+room-fth-app = { path = "programs/room-fth/app" }
+room-fth-client = { path = "programs/room-fth/client" }
+room-poll-app = { path = "programs/room-poll/app" }
+room-poll-client = { path = "programs/room-poll/client" }
 parity-scale-codec = { version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"] }
 sails-rs = "=1.0.1"
