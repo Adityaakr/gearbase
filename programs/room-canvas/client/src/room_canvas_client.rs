@@ -63,6 +63,8 @@ pub mod room {
         NotOwner,
         AlreadyJoined,
         NotJoined,
+        AlreadySeated,
+        SeatOccupied,
         NotAllowed,
         ParticipantsFull,
         NameTooLong { max_bytes: u16 },
@@ -72,6 +74,10 @@ pub mod room {
         InvalidKind,
         InvalidBounds,
         InvalidColor,
+        WrongPhase,
+        AlreadyVoted,
+        CommitMismatch,
+        RevealTimeoutPending { remaining_secs: u32 },
         CooldownActive { retry_after_secs: u32 },
     }
 
@@ -112,7 +118,7 @@ pub mod room {
 
     impl sails_rs::client::Identifiable for RoomImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([247, 176, 98, 117, 103, 143, 153, 189]);
+            sails_rs::InterfaceId::from_bytes_8([24, 20, 199, 101, 94, 103, 71, 65]);
     }
 
     impl<E: sails_rs::client::GearEnv> Room for sails_rs::client::Service<RoomImpl, E> {

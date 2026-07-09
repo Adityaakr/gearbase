@@ -1,7 +1,7 @@
 
 !@sails: 1.0.1
 
-service Room@0xf7b06275678f99bd {
+service Room@0x1814c7655e674741 {
     events {
         Closed,
         Configured(u64),
@@ -40,6 +40,8 @@ service Room@0xf7b06275678f99bd {
             NotOwner,
             AlreadyJoined,
             NotJoined,
+            AlreadySeated,
+            SeatOccupied,
             NotAllowed,
             ParticipantsFull,
             NameTooLong {
@@ -56,6 +58,12 @@ service Room@0xf7b06275678f99bd {
             InvalidKind,
             InvalidBounds,
             InvalidColor,
+            WrongPhase,
+            AlreadyVoted,
+            CommitMismatch,
+            RevealTimeoutPending {
+                remaining_secs: u32,
+            },
             CooldownActive {
                 retry_after_secs: u32,
             },
@@ -68,6 +76,6 @@ program RoomCanvasClient {
         Create(width: u16, height: u16, palette_size: u16, cooldown_secs: u16);
     }
     services {
-        Room@0xf7b06275678f99bd,
+        Room@0x1814c7655e674741,
     }
 }
