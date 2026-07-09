@@ -201,6 +201,6 @@ Evidence type:
 
 ## Remaining blockers
 
-- No funded Hoodi deployer key or sponsor key is available in this workspace.
-- No `.env` file or relevant environment variables were present.
-- A public-faucet/manual-wallet step is still required before true Hoodi deploy verification.
+- A Hoodi deployer wallet now has `1.0 ETH`, but `wVARA` is still missing.
+- No sponsor wallet is prepared yet.
+- A full Hoodi deploy verification is still blocked on executable-balance funding and end-to-end create/top-up/init checks.

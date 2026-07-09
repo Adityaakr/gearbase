@@ -21,7 +21,8 @@ Status: in progress, partially verified
   - `ethexe` had to be installed manually from official published binaries
 - Platform findings for Q1-Q8 recorded in `docs/PLATFORM_NOTES.md`
 - Remaining blockers:
-  - No funded Hoodi deployer/sponsor credentials in workspace
+  - Hoodi deployer wallet has ETH, but no `wVARA` yet
+  - No sponsor wallet prepared yet
   - Fresh zero-balance injected-tx empirical check not yet run
   - Per-op executable-balance measurement not yet captured
   - Current local-dev path has version-compatibility drift between `ethexe` and the vendored example stack
