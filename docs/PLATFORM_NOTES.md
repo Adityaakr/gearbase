@@ -23,6 +23,17 @@ Observed version drift:
 - `ethexe 2.0.0` local-dev mode is available, but a `1.10.x` example artifact uploaded into that runtime failed with `error code -32602: Failed to decode transaction`.
 - `cargo sails new --eth` with `sails-rs 2.0.0` currently fails from crates.io because `gear-wasm-builder = "=2.0.0"` was not available during verification.
 
+Hoodi empirical deploy notes:
+
+- Upload of `vault.opt.wasm` to Hoodi succeeded and code validation was approved.
+- The upload transaction was:
+  - upload tx: `0x2d5380664c139e1ea96b4409192d1e335132165f4acd91af57a76e0b54b3fafb`
+  - validation approval tx: `0xee95b6ca7963e469c75f967bce498167c2c0b08e0a86fed7e9a8a13b97394b73`
+- Program creation succeeded:
+  - create tx: `0xe32a1229baeb8be668f87a984889eac98d4ffc11ec2f9f7568a13b669749dc02`
+  - actor id: `0x08bcfbda4aa4fe9f6615194e1f179b8641319557`
+- Important empirical finding: the upload transaction transferred the funded `wVARA` from the deployer to the Router before any executable-balance top-up happened.
+
 ## Q1. Push updates
 
 Conclusion:
@@ -90,11 +101,17 @@ Conclusion:
   - each message gets a small free compute threshold,
   - beyond that threshold, CPU time is metered at `wvaraPerSecond`,
   - consumption is deducted from executable balance.
+- Hoodi empirical note:
+  - funding only `1000000000000000` raw units of `wVARA` was not enough for a full deploy flow,
+  - that amount was consumed during upload/validation before executable-balance top-up could happen.
 - The exact per-op cost for a Gearbase canvas write was not measured in Phase 0 because a funded compatible deploy target was not available.
 - There is a source-of-truth conflict on wVARA decimals:
   - official current docs say `18` decimals,
   - vendored skills/playbooks repeatedly state `12` decimals.
-- Until empirically resolved, treat decimals as an open risk and do not publish sponsor UX estimates.
+- Current Hoodi behavior is consistent with the official `18`-decimal docs:
+  - funded amount received: `1000000000000000` raw units,
+  - this corresponds to `0.001 wVARA` under the official docs.
+- Do not publish sponsor UX estimates yet; per-op cost remains unmeasured.
 
 Sources:
 
@@ -201,6 +218,6 @@ Evidence type:
 
 ## Remaining blockers
 
-- A Hoodi deployer wallet now has `1.0 ETH`, but `wVARA` is still missing.
+- A Hoodi deployer wallet now has `1.0 ETH`, but `wVARA` was exhausted by upload before executable-balance top-up.
 - No sponsor wallet is prepared yet.
 - A full Hoodi deploy verification is still blocked on executable-balance funding and end-to-end create/top-up/init checks.

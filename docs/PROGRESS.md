@@ -20,8 +20,13 @@ Status: in progress, partially verified
   - `sails-cli` had to be upgraded from `0.10.4` to `2.0.0`
   - `ethexe` had to be installed manually from official published binaries
 - Platform findings for Q1-Q8 recorded in `docs/PLATFORM_NOTES.md`
+- Hoodi live deploy progress:
+  - code upload succeeded
+  - code validation succeeded
+  - program creation succeeded
+  - executable-balance top-up blocked because the initial `wVARA` funding was consumed during upload
 - Remaining blockers:
-  - Hoodi deployer wallet has ETH, but no `wVARA` yet
+  - Hoodi deployer wallet has ETH, but no `wVARA` remains for executable-balance top-up
   - No sponsor wallet prepared yet
   - Fresh zero-balance injected-tx empirical check not yet run
   - Per-op executable-balance measurement not yet captured
