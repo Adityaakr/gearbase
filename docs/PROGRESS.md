@@ -66,3 +66,49 @@ Status: in progress while Hoodi executable-balance funding is blocked
   - `./node_modules/.bin/tsc -p packages/sdk/tsconfig.json` passes
   - `../../node_modules/.bin/tsc -p apps/canvas-web/tsconfig.json --noEmit` passes
   - `../../node_modules/.bin/vite build` passes in `apps/canvas-web`
+  - `cargo test --release -p room-poll` passes
+  - `cargo test --release -p room-fth` passes
+  - `./node_modules/.bin/tsx packages/clients/src/generate.ts` now emits 3 room IDLs (`canvas`, `poll`, `fth`)
+  - `./node_modules/.bin/tsc -p packages/sdk/tsconfig.json --noEmit` passes after adding `poll` and `fth` room runtimes
+  - `./node_modules/.bin/tsc -p packages/agent-runner/tsconfig.json --noEmit` passes
+  - `../../node_modules/.bin/tsc -p apps/poll-web/tsconfig.json --noEmit` passes
+  - `../../node_modules/.bin/tsc -p apps/fth-web/tsconfig.json --noEmit` passes
+  - `../../node_modules/.bin/tsc -p apps/showcase/tsconfig.json --noEmit` passes
+  - `../../node_modules/.bin/vite build` passes in `apps/poll-web`
+  - `../../node_modules/.bin/vite build` passes in `apps/fth-web`
+  - `../../node_modules/.bin/vite build` passes in `apps/showcase`
+
+## Current product slice
+
+Status: locally integrated, still blocked on final Hoodi fuel-backed end-to-end verification
+
+- `programs/room-poll` is implemented with revoting, tally tracking, and gtests.
+- `programs/room-fth` is implemented with:
+  - fixed-seat lobby
+  - host commit
+  - multi-round prompting/answering
+  - spectator voting
+  - reveal + abort path
+  - gtests for both happy path and abort path
+- `@gearbase/sdk` now exposes:
+  - `joinCanvas`
+  - `joinPoll`
+  - `joinFth`
+  - `create(...)` for `canvas`, `poll`, and `fth` when a validated template `codeId` is supplied
+  - room `fuel()` reads
+  - room `sponsor(...)` top-ups
+  - `lowFuel` event hooks
+  - typed room runtimes for all three templates
+- `apps/poll-web` now supports:
+  - burner voting
+  - wallet-based poll creation
+  - explicit sponsorship top-ups
+- `apps/fth-web` is a light-themed room UI with:
+  - burner / wallet connect
+  - wallet-based room creation
+  - seat actions
+  - voting
+  - transcript view
+  - host commit / reveal controls
+- `apps/showcase` is now a light-themed onchain playground for quick canvas + poll testing.
+- `@gearbase/agent-runner` now loads `agents.yaml`, joins an fth room with private-key identities, seats agents, and submits answers through an OpenAI-compatible chat endpoint.

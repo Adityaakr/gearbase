@@ -65,14 +65,40 @@ Use this format:
   - local compile errors from `cargo test --release -p room-canvas`
   - `programs/room-canvas/app/src/lib.rs`
 
-## SDK scope is canvas-first
+## SDK create path depends on validated code ids
 
 - spec section: 6.1, 6.4
-- implemented behavior: `@gearbase/sdk` currently ships a real connection layer and room runtime for the `canvas` template only; `create(...)`, sponsorship flows, low-fuel monitoring, and other template-specific room clients are not implemented yet.
-- reason: the current repo has one live room IDL and one implemented program surface; building the documented injected-write/read path against that concrete room is the shortest route to a verifiable SDK baseline.
+- implemented behavior: `@gearbase/sdk` now ships room runtimes for `canvas`, `poll`, and `fth`, including `create(...)`, room `fuel()`, room `sponsor(...)`, and `lowFuel` events.
+- deviation: `create(...)` requires a validated `codeId` per template to be provided through `Gearbase.connect({ templateCodeIds })` or the per-call `create(..., { codeId })` override.
+- reason: code upload and validation are still explicitly CLI-first in the official Vara.eth playbooks, so the SDK should not guess or fake a code-discovery path.
 - source:
   - `packages/sdk/src/index.ts`
   - `packages/clients/src/generated.ts`
+
+## FTH phase model is simplified onchain
+
+- spec section: 5.4, 8.2
+- implemented behavior: `room-fth` uses a compact phase model `Lobby -> Answering -> Voting -> Ended|Aborted`; advancing from round N to N+1 is another `StartRound(prompt)` call instead of a separate onchain `Prompting` sub-phase.
+- reason: the gameplay semantics still hold, while the public ABI stays smaller and the transition surface is easier to verify in gtests.
+- source:
+  - `programs/room-fth/app/src/lib.rs`
+  - `programs/room-fth/tests/gtest.rs`
+
+## Showcase is a tester, not a directory app
+
+- spec section: 3, 7, 9 phase 6
+- implemented behavior: `apps/showcase` is currently a light-themed onchain playground for attaching to live `canvas` and `poll` rooms and sending test writes, rather than a final room-directory showcase.
+- reason: this remains the shortest route to a useful manual test surface while public room seeding and final launch content are still unfinished.
+- source:
+  - `apps/showcase/src/App.tsx`
+
+## Agent runner is fth-first
+
+- spec section: 8.4
+- implemented behavior: `@gearbase/agent-runner` currently provides a working fth-specific runtime loop and YAML loader, but it does not yet expose a pluggable strategy module system for other room types.
+- reason: the flagship demo needs real agent participation first; the reusable strategy abstraction can be layered on once the basic runner is proven on testnet.
+- source:
+  - `packages/agent-runner/src/index.ts`
 
 ## Canvas web still ships a heavy async SDK chunk
 
