@@ -43,3 +43,24 @@ Use this format:
   - `/tmp/ethexe-v2.0.0-aarch64-apple-darwin/ethexe run --help`
   - local upload failure against `vault.opt.wasm`
   - `cargo sails new ... --eth` failure logs
+
+## Phase overlap while Hoodi funding is blocked
+
+- spec section: 9
+- implemented behavior: local Phase 1 implementation work started before full Phase 0 acceptance completed.
+- reason: Hoodi upload/create verification succeeded, but executable-balance top-up and the remaining live testnet checks are blocked on fresh `wVARA`; local Rust/TS implementation could progress safely in parallel.
+- source:
+  - `docs/PROGRESS.md`
+  - `docs/hoodi-funding.md`
+
+## ABI-safe room surface uses tuple views
+
+- spec section: 5.3, 5.4
+- implemented behavior: the exported Sails surface for `room-canvas` currently uses primitive/tuple views for several methods:
+  - `Join(name: String, kind: u16)` instead of `Join(profile: Option<Profile>)`
+  - `PlacePixel(x, y, color)` instead of a struct argument
+  - `Info`, `Since`, and `Participants` return tuple-based views instead of custom structs
+- reason: current `sails-rs` `ethexe` macro expansion requires Solidity-compatible public input/output shapes; custom structs and `Option<String>` inputs failed compilation.
+- source:
+  - local compile errors from `cargo test --release -p room-canvas`
+  - `programs/room-canvas/app/src/lib.rs`

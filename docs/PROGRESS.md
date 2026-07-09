@@ -31,3 +31,29 @@ Status: in progress, partially verified
   - Fresh zero-balance injected-tx empirical check not yet run
   - Per-op executable-balance measurement not yet captured
   - Current local-dev path has version-compatibility drift between `ethexe` and the vendored example stack
+
+## Parallel local implementation
+
+Status: in progress while Hoodi executable-balance funding is blocked
+
+- Added the monorepo workspace skeleton:
+  - root Cargo workspace
+  - pnpm workspace
+  - package/app placeholders for `sdk`, `clients`, `agent-runner`, and the four web apps
+- Implemented `programs/gearbase-core` with:
+  - room metadata
+  - membership
+  - event ring buffer / `Since`
+  - rate limiter
+  - unit tests
+- Implemented `programs/room-canvas` with:
+  - base room surface
+  - packed pixel storage
+  - region reads
+  - join / leave / configure / close
+  - event emission and ring-buffer recording
+  - gtest coverage for join/pixel/since flow and invalid-color rejection
+- Local verification:
+  - `cargo test --release -p gearbase-core -p room-canvas` passes
+  - `CI=true pnpm -r typecheck` passes
+  - `CI=true pnpm -r build` passes

@@ -1,0 +1,25 @@
+[package]
+name = "room-canvas"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Builds the room-canvas WASM and IDL artifacts"
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+sails-rs = { workspace = true, features = ["ethexe"] }
+room-canvas-app.workspace = true
+
+[dev-dependencies]
+sails-rs = { workspace = true, features = ["ethexe", "gtest", "gclient"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
+room-canvas-app.workspace = true
+room-canvas-client.workspace = true
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["ethexe", "build"] }
+room-canvas-app.workspace = true
