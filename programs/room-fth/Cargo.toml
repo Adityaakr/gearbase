@@ -1,0 +1,26 @@
+[package]
+name = "room-fth"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Builds the room-fth WASM and IDL artifacts"
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+sails-rs = { workspace = true, features = ["ethexe"] }
+room-fth-app.workspace = true
+
+[dev-dependencies]
+sails-rs = { workspace = true, features = ["ethexe", "gtest", "gclient"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
+room-fth-app.workspace = true
+room-fth-client.workspace = true
+tiny-keccak = { version = "2", features = ["keccak"] }
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["ethexe", "build"] }
+room-fth-app.workspace = true

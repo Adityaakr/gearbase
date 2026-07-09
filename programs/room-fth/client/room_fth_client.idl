@@ -1,0 +1,106 @@
+
+!@sails: 1.0.1
+
+service Room@0xe958de78933b1c39 {
+    events {
+        AnswerSubmitted {
+            round: u16,
+            seat: u16,
+            who: [u8; 32],
+            text: String,
+        },
+        Closed,
+        Configured(u64),
+        HostCommitted,
+        Joined([u8; 32]),
+        Left([u8; 32]),
+        RevealAborted,
+        Revealed {
+            seat: u16,
+        },
+        RoundStarted {
+            round: u16,
+            prompt: String,
+        },
+        SatDown {
+            who: [u8; 32],
+            seat: u16,
+        },
+        Updated(u64),
+        VoteCast {
+            who: [u8; 32],
+            seat: u16,
+        },
+        VotingOpened,
+    }
+    functions {
+        AbortReveal() -> u64 throws RoomError;
+        CastVote(seat: u16) -> u64 throws RoomError;
+        CloseRoom() -> u64 throws RoomError;
+        Configure(config_blob: [u8]) -> u64 throws RoomError;
+        @query
+        Game() -> ((bool, u64, u16, u16, bool, [u8; 32], u16, u16, bool, u16, bool, u64), ([(u16, ActorId)], [(u16, String)], [(u16, u16, String)], [(ActorId, u16)], [u32]));
+        HostCommit(hash: [u8; 32]) -> u64 throws RoomError;
+        @query
+        Info() -> (String, u16, ActorId, u64, [u8]);
+        Join(name: String, kind: u16) -> u64 throws RoomError;
+        Leave() -> u64 throws RoomError;
+        OpenVoting() -> u64 throws RoomError;
+        @query
+        Participants() -> [(ActorId, String, u16, u64)];
+        Reveal(seat: u16, salt: [u8; 32]) -> u64 throws RoomError;
+        @query
+        Seq() -> u64;
+        @query
+        Since(from_seq: u64) -> (u64, [(u64, [u8])], bool);
+        SitDown(seat: u16) -> u64 throws RoomError;
+        @query
+        Snapshot() -> [u8];
+        StartRound(prompt: String) -> u64 throws RoomError;
+        SubmitAnswer(text: String) -> u64 throws RoomError;
+    }
+    types {
+        enum RoomError {
+            Closed,
+            NotOwner,
+            AlreadyJoined,
+            NotJoined,
+            AlreadySeated,
+            SeatOccupied,
+            NotAllowed,
+            ParticipantsFull,
+            NameTooLong {
+                max_bytes: u16,
+            },
+            PayloadTooLarge {
+                actual_bytes: u32,
+                max_bytes: u16,
+            },
+            RateLimited {
+                retry_after_secs: u32,
+            },
+            InvalidConfig,
+            InvalidKind,
+            InvalidBounds,
+            InvalidColor,
+            WrongPhase,
+            AlreadyVoted,
+            CommitMismatch,
+            RevealTimeoutPending {
+                remaining_secs: u32,
+            },
+            CooldownActive {
+                retry_after_secs: u32,
+            },
+        }
+    }
+}
+
+program RoomFthClient {
+    constructors {
+        Create(reveal_tally_live: bool, reveal_timeout_secs: u64, round_count: u16, answer_max_bytes: u16);
+    }
+    services {
+        Room@0xe958de78933b1c39,
+    }
+}
