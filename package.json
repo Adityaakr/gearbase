@@ -10,7 +10,9 @@
     "typecheck": "pnpm -r typecheck",
     "gen:clients": "pnpm --filter @gearbase/clients gen",
     "smoke": "tsx scripts/smoke.ts",
-    "deploy:rooms": "tsx scripts/deploy.ts"
+    "deploy:rooms": "tsx scripts/deploy.ts",
+    "create:room": "tsx scripts/create-room.ts",
+    "read:room": "tsx scripts/read-room.ts"
   },
   "devDependencies": {
     "@types/node": "^24.3.1",
@@ -20,6 +22,7 @@
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
     "vite": "^7.0.6",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@gearbase/sdk": "workspace:*"
   }
 }

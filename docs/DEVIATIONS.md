@@ -118,3 +118,19 @@ Use this format:
 - reason: this is the documented dependency path for injected writes today; further reduction will require chunk splitting or a thinner browser-facing transport layer.
 - source:
   - local `vite build` output in `apps/canvas-web`
+
+## bootstrapBaseRoomState routed every room through the canvas client (FIXED)
+
+- status: fixed 2026-07-10.
+- symptom: `joinPoll()` and `joinFth()` always failed. Only `joinCanvas()` worked.
+- cause: `bootstrapBaseRoomState` hardcoded `loadRoomProgram("canvas", programId)` when reading the
+  shared `Info`/`Seq`/`Participants` surface. The method names are identical across templates, but
+  sails bakes the service selector into the payload route prefix (canvas `0x1814c7655e674741`, poll
+  `0x1dc28754978874f9`, fth `0xe958de78933b1c39`), so a poll program rejected the canvas-routed
+  query with `failed to find matching interface`.
+- why it was invisible: `runRoomQuery` never checked the reply code. It SCALE-decoded the error
+  message as if it were room state, producing an inscrutable codec error rather than the node's
+  actual complaint.
+- fix: callers that know their template pass it. `open()` does not, so it probes each template until
+  one answers (`detectRoomProgram`). `runRoomQuery` now checks the reply code and surfaces the
+  node's UTF-8 error text.

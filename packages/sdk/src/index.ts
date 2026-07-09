@@ -1046,7 +1046,42 @@ async function runRoomQuery(
     0n,
   );
 
+  // An error reply carries a UTF-8 message, not SCALE. Decoding it anyway yields
+  // an inscrutable codec error, so surface the node's actual complaint instead.
+  // The commonest cause is routing a query through the wrong room template: the
+  // service selector is baked into the payload prefix, and a mismatched program
+  // answers "failed to find matching interface".
+  const replyCode = replyCodeToHex(reply.code);
+  if (replyCode && !SUCCESS_REPLY_CODES.has(replyCode)) {
+    throw new Error(`${name}() failed with reply code ${replyCode}: ${asUtf8(reply.payload)}`);
+  }
+
   return query.decodeResult(reply.payload);
+}
+
+/** `calculateReplyForHandle` returns a `ReplyCode` object, not a hex string. */
+function replyCodeToHex(code: unknown): string | undefined {
+  const bytes =
+    code instanceof Uint8Array
+      ? code
+      : code && typeof code === "object" && "_bytes" in code
+        ? ((code as { _bytes: unknown })._bytes as Uint8Array)
+        : undefined;
+  if (!(bytes instanceof Uint8Array)) {
+    return undefined;
+  }
+  return toHex(bytes).toLowerCase();
+}
+
+function asUtf8(payload: string): string {
+  try {
+    const text = new TextDecoder().decode(bytesFromUnknown(payload));
+    // Keep only the printable run, so a SCALE blob does not become mojibake.
+    const printable = text.replace(/[^\x20-\x7e]/g, " ").trim();
+    return printable || payload.slice(0, 80);
+  } catch {
+    return payload.slice(0, 80);
+  }
 }
 
 function decodeRoomInfo(raw: [string, number, unknown, number, unknown]): RoomInfo {
@@ -1117,16 +1152,56 @@ function encodeCreatePayload(
   }
 }
 
+const ROOM_TEMPLATES: SupportedRoomTemplate[] = ["canvas", "poll", "fth"];
+
+/**
+ * Find which template a program speaks by asking each in turn. Only the matching
+ * client produces a route the program will answer.
+ */
+async function detectRoomProgram(
+  api: VaraEthApi,
+  address: Address,
+  programId: Address,
+): Promise<ConnectedProgram> {
+  const failures: string[] = [];
+
+  for (const template of ROOM_TEMPLATES) {
+    const candidate = await loadRoomProgram(template, programId);
+    try {
+      await runRoomQuery(api, address, programId, candidate, "Info");
+      return candidate;
+    } catch (error) {
+      failures.push(`${template}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  throw new Error(
+    `Program ${programId} did not answer Info() as any known room template.\n${failures.join("\n")}`,
+  );
+}
+
+/**
+ * Read the room surface every template shares.
+ *
+ * The method names are identical across templates, but sails bakes the service
+ * selector into the payload prefix, so a query encoded with the canvas client is
+ * rejected by a poll program. Callers that already know the template must pass
+ * it. `open()` does not, so it probes each template until one answers.
+ */
 async function bootstrapBaseRoomState(
   api: VaraEthApi,
   address: Address,
   programId: Address,
+  template?: SupportedRoomTemplate,
 ): Promise<{
   info: RoomInfo;
   seq: number;
   participants: ParticipantProfile[];
 }> {
-  const program = await loadRoomProgram("canvas", programId);
+  const program = template
+    ? await loadRoomProgram(template, programId)
+    : await detectRoomProgram(api, address, programId);
+
   const [infoRaw, seqRaw, participantsRaw] = await Promise.all([
     runRoomQuery(api, address, programId, program, "Info"),
     runRoomQuery(api, address, programId, program, "Seq"),
@@ -2279,6 +2354,7 @@ export class Gearbase {
       this.session.api,
       this.address,
       programId,
+      "canvas",
     );
     if (info.template !== "canvas") {
       throw new Error(`Expected canvas room, received ${info.template}`);
@@ -2318,6 +2394,7 @@ export class Gearbase {
       this.session.api,
       this.address,
       programId,
+      "poll",
     );
     if (info.template !== "poll") {
       throw new Error(`Expected poll room, received ${info.template}`);
@@ -2369,6 +2446,7 @@ export class Gearbase {
       this.session.api,
       this.address,
       programId,
+      "fth",
     );
     if (info.template !== "fth") {
       throw new Error(`Expected fth room, received ${info.template}`);

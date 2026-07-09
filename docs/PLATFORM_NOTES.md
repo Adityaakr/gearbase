@@ -265,3 +265,36 @@ Evidence type:
   consumed the entire wVARA balance.
 
 Evidence type: measured on chain.
+
+## First gearbase room live on Vara.eth
+
+Created and exercised on Hoodi, 2026-07-10.
+
+- program (Mirror): `0x6df7ffa77ae859df5f7d1eff5740621d719c47d8`
+- from `code_id` `0x91d025ee95bff91e3a97880e4c47deb5f4c1b60c68f5ef4ccd957d54f2913508`
+- owner / initializer: `0xb941D815859A92B7Fd095a47012931dC8F3b5EC4`
+
+Verified end to end: constructor executed (mirror nonce 1), `Info`/`Poll`/`Tally`/`Participants`
+queries return real state, and two writes (`Join`, `Vote`) executed and changed state
+(`seq 0 -> 2`, `tally [0,0] -> [1,0]`, participants `0 -> 1`).
+
+### Q4, partially answered: per-op cost
+
+First empirical measurement of executable-balance consumption:
+
+- executable balance after `create` + constructor: `0.9537835134 wVARA` (topped up with `1.0`)
+- so the constructor cost about `0.0462 wVARA`
+- after `Join` + `Vote`: `0.6135650712 wVARA`
+- so two writes cost about `0.3402 wVARA`, roughly `0.17 wVARA` per write
+
+Rough guide: a 1 wVARA top-up buys on the order of five room writes. Do not treat this as a
+published sponsor estimate. It is a single sample on one room shape.
+
+### `create` and executable-balance top-up land in one Ethereum tx
+
+`Gearbase.create()` uses `createProgramBuilder(...).withExecutableBalance(amount, deadline, permitSig)`,
+so program creation and the wVARA top-up are a single transaction
+(`0x5d47d59436de1f8b34feef66bf8b8ad9104b4e0b5dd1947345f07bb3c14a4a21`). The constructor message is a
+separate mirror `sendMessage`.
+
+Evidence type: measured on chain.
