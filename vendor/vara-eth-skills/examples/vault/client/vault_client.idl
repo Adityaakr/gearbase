@@ -1,0 +1,44 @@
+
+!@sails: 1.0.0-beta.3
+
+service Vault@0xa59c04dd2e54296c {
+    events {
+        Deposited([u8; 32], u128, u128),
+        Withdrawn([u8; 32], u128, u128),
+    }
+    functions {
+        @query
+        BalanceOf(account: ActorId) -> u128 throws String;
+        /// #[payable]
+        Deposit() -> u128 throws String;
+        @query
+        TotalBalance() -> u128 throws String;
+        /// #[returns_value]
+        Withdraw(amount: u128) throws String;
+    }
+}
+
+service Admin@0x333f2d08b0797641 {
+    events {
+        Paused([u8; 32]),
+        Unpaused([u8; 32]),
+    }
+    functions {
+        @query
+        IsPaused() -> bool throws String;
+        @query
+        Owner() -> ActorId throws String;
+        Pause() throws String;
+        Unpause() throws String;
+    }
+}
+
+program VaultClient {
+    constructors {
+        Create();
+    }
+    services {
+        Vault@0xa59c04dd2e54296c,
+        Admin@0x333f2d08b0797641,
+    }
+}
