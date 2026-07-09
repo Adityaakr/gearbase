@@ -21,5 +21,6 @@ Known Hoodi contracts:
 
 Funding state recorded during Phase 0:
 
+- funding tx: `0x974fc4de78a3a8edcd8a2909aec417e3320e6006a1d485e6adf06224a0dbcd44`
 - `1.0 ETH` confirmed received
-- `wVARA` still pending
+- `0 wVARA` at last RPC check
