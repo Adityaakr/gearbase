@@ -64,3 +64,5 @@ Status: in progress while Hoodi executable-balance funding is blocked
   - `CI=true pnpm -r build` passed before the SDK dependency update
   - `./node_modules/.bin/tsc -p packages/clients/tsconfig.json` passes
   - `./node_modules/.bin/tsc -p packages/sdk/tsconfig.json` passes
+  - `../../node_modules/.bin/tsc -p apps/canvas-web/tsconfig.json --noEmit` passes
+  - `../../node_modules/.bin/vite build` passes in `apps/canvas-web`

@@ -73,3 +73,11 @@ Use this format:
 - source:
   - `packages/sdk/src/index.ts`
   - `packages/clients/src/generated.ts`
+
+## Canvas web still ships a heavy async SDK chunk
+
+- spec section: 7
+- implemented behavior: `apps/canvas-web` lazy-loads `@gearbase/sdk`, which keeps the initial UI chunk smaller, but the async SDK/runtime chunk is still about 2.1 MB minified because it pulls the current Vara.eth and Gear JS browser stack.
+- reason: this is the documented dependency path for injected writes today; further reduction will require chunk splitting or a thinner browser-facing transport layer.
+- source:
+  - local `vite build` output in `apps/canvas-web`
