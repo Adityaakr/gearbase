@@ -41,6 +41,18 @@ const CODE_STATE_VALIDATED = 2;
 const WVARA_DECIMALS = 12n;
 const WVARA_ONE = 10n ** WVARA_DECIMALS;
 
+/**
+ * `upload` charges a flat 1000 wVARA per code, regardless of wasm size. Measured
+ * on 2026-07-10: uploading a 97 KiB code with 995 wVARA reverted with
+ * `ERC20InsufficientBalance(sender, 995e12, 1000e12)`. An earlier upload appeared
+ * to "sweep" the whole balance only because that balance happened to be exactly
+ * 1000 wVARA.
+ */
+const UPLOAD_FEE = 1000n * WVARA_ONE;
+
+/** `ERC20InsufficientBalance(address,uint256,uint256)`. */
+const ERC20_INSUFFICIENT_BALANCE = "0xe450d38c";
+
 const VALIDATION_POLL_MS = 5_000;
 const VALIDATION_TIMEOUT_MS = 10 * 60_000;
 
@@ -174,12 +186,36 @@ function wasmPath(room: Room): string {
   return `target/wasm32-gear/release/room_${room}.opt.wasm`;
 }
 
+/**
+ * ethexe surfaces contract reverts as raw ABI-encoded hex. Translate the one we
+ * actually hit, so a funding shortfall reads as a funding shortfall.
+ */
+function explainRevert(message: string): string {
+  const match = message.match(new RegExp(`${ERC20_INSUFFICIENT_BALANCE}([0-9a-fA-F]{192})`));
+  if (!match) return message;
+
+  const words = match[1].match(/.{64}/g) ?? [];
+  const balance = BigInt(`0x${words[1]}`);
+  const needed = BigInt(`0x${words[2]}`);
+  return (
+    `wVARA balance too low: have ${formatWvara(balance)}, need ${formatWvara(needed)}, ` +
+    `short ${formatWvara(needed - balance)}.`
+  );
+}
+
 async function runEthexe(config: Config, args: string[], verbose: boolean): Promise<string> {
-  const { stdout, stderr } = await execFileAsync(config.ethexe, args, {
-    maxBuffer: 32 * 1024 * 1024,
-  });
-  if (verbose && stderr.trim()) console.error(stderr.trim());
-  return stdout;
+  try {
+    const { stdout, stderr } = await execFileAsync(config.ethexe, args, {
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    if (verbose && stderr.trim()) console.error(stderr.trim());
+    return stdout;
+  } catch (error) {
+    const raw = error instanceof Error ? error.message : String(error);
+    // `key keyring import` echoes the private key back in the failing argv.
+    const safe = raw.split(config.privateKey).join("<redacted>");
+    throw new Error(explainRevert(safe));
+  }
 }
 
 /**
@@ -273,12 +309,19 @@ async function preflight(config: Config, cli: Cli): Promise<void> {
 
   if (eth === 0n) throw new Error("deployer has no ETH for gas");
 
-  if (wvara === 0n) {
-    console.log("");
-    console.log("  NOTE: deployer holds 0 wVARA.");
-    console.log("  Upload may still succeed, but creating a room needs an executable-balance");
-    console.log("  top-up, which spends wVARA. wVARA cannot be minted or wrapped from ETH:");
-    console.log("  it must be sent to you. Ask the Gear team.");
+  // Fail before spending gas rather than reverting inside `upload`.
+  const required = UPLOAD_FEE * BigInt(cli.rooms.length);
+  console.log(`  upload fee: ${formatWvara(UPLOAD_FEE)} per room x ${cli.rooms.length} = ${formatWvara(required)}`);
+
+  if (wvara < required) {
+    const short = required - wvara;
+    throw new Error(
+      `insufficient wVARA. Have ${formatWvara(wvara)}, need ${formatWvara(required)} ` +
+        `for ${cli.rooms.length} room(s), short ${formatWvara(short)}.\n` +
+        `  Send wVARA (${WVARA_DECIMALS} decimals) to ${config.deployer}.\n` +
+        `  It cannot be minted or wrapped from ETH; a human must transfer it.\n` +
+        `  Tip: upload one room at a time with --only <canvas|poll|fth>.`,
+    );
   }
 }
 

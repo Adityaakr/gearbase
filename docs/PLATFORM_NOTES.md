@@ -239,3 +239,29 @@ Evidence type:
 - A Hoodi deployer wallet now has `1.0 ETH`, but `wVARA` was exhausted by upload before executable-balance top-up.
 - No sponsor wallet is prepared yet.
 - A full Hoodi deploy verification is still blocked on executable-balance funding and end-to-end create/top-up/init checks.
+
+## Code upload costs a flat 1000 wVARA
+
+- Measured on Hoodi, 2026-07-10.
+- `ethexe tx upload` charges **exactly `1000 wVARA` (`1e15` raw units) per code**, independent of
+  wasm size. A 97.16 KiB code was charged the same 1000 wVARA.
+- Proof: uploading with a `995 wVARA` balance reverted with the typed ERC-20 error
+  `ERC20InsufficientBalance(0xb941...5EC4, 995000000000000, 1000000000000000)`
+  (selector `0xe450d38c`). The revert happened during gas estimation, so no tx was mined and no gas
+  was spent.
+- This retires the earlier theory that `upload` "sweeps the whole balance". The first upload only
+  looked like a sweep because the balance was coincidentally exactly 1000 wVARA.
+- Budget accordingly: 3 rooms = `3000 wVARA` of upload fees, plus roughly `1 wVARA` per room for the
+  executable-balance top-up that `Gearbase.create()` performs.
+- `scripts/deploy.ts` checks this in preflight and refuses to start when the balance is short,
+  rather than reverting mid-flight.
+
+### First gearbase code on Vara.eth
+
+- `room_poll` uploaded and validated on Hoodi, 2026-07-10.
+- `code_id`: `0x91d025ee95bff91e3a97880e4c47deb5f4c1b60c68f5ef4ccd957d54f2913508` (blake2b256)
+- `Router.codeState(code_id)` returns `2` (Validated), verified independently of the deploy script.
+- No room has been *created* from it yet: that needs an executable-balance top-up, and the upload
+  consumed the entire wVARA balance.
+
+Evidence type: measured on chain.
