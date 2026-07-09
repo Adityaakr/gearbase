@@ -84,7 +84,7 @@ export function App() {
         setAddress(gearbase.address);
         setStatus("Attaching to room");
 
-        const room = await gearbase.join(programId as `0x${string}`);
+        const room = await gearbase.joinCanvas(programId as `0x${string}`);
         roomRef.current = room;
         setState(room.state);
         setSeq(room.seq);
