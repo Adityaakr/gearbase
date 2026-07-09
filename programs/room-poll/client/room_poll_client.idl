@@ -1,0 +1,81 @@
+
+!@sails: 1.0.1
+
+service Room@0x1dc28754978874f9 {
+    events {
+        Closed,
+        Configured(u64),
+        Joined([u8; 32]),
+        Left([u8; 32]),
+        Updated(u64),
+        Voted {
+            who: [u8; 32],
+            option: u16,
+        },
+    }
+    functions {
+        CloseRoom() -> u64 throws RoomError;
+        Configure(config_blob: [u8]) -> u64 throws RoomError;
+        @query
+        Info() -> (String, u16, ActorId, u64, [u8]);
+        Join(name: String, kind: u16) -> u64 throws RoomError;
+        Leave() -> u64 throws RoomError;
+        @query
+        Participants() -> [(ActorId, String, u16, u64)];
+        @query
+        Poll() -> (String, [String], bool, u64, [(ActorId, u16)], [u32]);
+        @query
+        Seq() -> u64;
+        @query
+        Since(from_seq: u64) -> (u64, [(u64, [u8])], bool);
+        @query
+        Snapshot() -> [u8];
+        @query
+        Tally() -> [u32];
+        Vote(option: u16) -> u64 throws RoomError;
+    }
+    types {
+        enum RoomError {
+            Closed,
+            NotOwner,
+            AlreadyJoined,
+            NotJoined,
+            AlreadySeated,
+            SeatOccupied,
+            NotAllowed,
+            ParticipantsFull,
+            NameTooLong {
+                max_bytes: u16,
+            },
+            PayloadTooLarge {
+                actual_bytes: u32,
+                max_bytes: u16,
+            },
+            RateLimited {
+                retry_after_secs: u32,
+            },
+            InvalidConfig,
+            InvalidKind,
+            InvalidBounds,
+            InvalidColor,
+            WrongPhase,
+            AlreadyVoted,
+            CommitMismatch,
+            RevealTimeoutPending {
+                remaining_secs: u32,
+            },
+            CooldownActive {
+                retry_after_secs: u32,
+            },
+        }
+    }
+}
+
+program RoomPollClient {
+    constructors {
+        Create(question: String, options: [String], has_ends_at: bool, ends_at: u64);
+    }
+    services {
+        Room@0x1dc28754978874f9,
+    }
+}

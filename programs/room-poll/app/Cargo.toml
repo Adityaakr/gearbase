@@ -1,0 +1,17 @@
+[package]
+name = "room-poll-app"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Poll room program logic"
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+gearbase-core.workspace = true
+parity-scale-codec.workspace = true
+scale-info.workspace = true
+sails-rs = { workspace = true, features = ["ethexe"] }

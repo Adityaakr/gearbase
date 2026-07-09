@@ -1,0 +1,25 @@
+[package]
+name = "room-poll"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Builds the room-poll WASM and IDL artifacts"
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+sails-rs = { workspace = true, features = ["ethexe"] }
+room-poll-app.workspace = true
+
+[dev-dependencies]
+sails-rs = { workspace = true, features = ["ethexe", "gtest", "gclient"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
+room-poll-app.workspace = true
+room-poll-client.workspace = true
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["ethexe", "build"] }
+room-poll-app.workspace = true
