@@ -1009,25 +1009,6 @@ export function applyCanvasEvent(state: CanvasState, event: CanvasRoomEvent): Ca
   };
 }
 
-function extractReplyPayload(result: unknown): Hex | undefined {
-  if (!result || typeof result !== "object") {
-    return undefined;
-  }
-
-  const payload =
-    "payload" in result && typeof result.payload === "string"
-      ? result.payload
-      : "reply" in result &&
-          result.reply &&
-          typeof result.reply === "object" &&
-          "payload" in result.reply &&
-          typeof result.reply.payload === "string"
-        ? result.reply.payload
-        : undefined;
-
-  return payload as Hex | undefined;
-}
-
 async function runRoomQuery(
   api: VaraEthApi,
   address: Address,
@@ -1073,14 +1054,64 @@ function replyCodeToHex(code: unknown): string | undefined {
   return toHex(bytes).toLowerCase();
 }
 
+/**
+ * Pull the reply out of an injected-transaction receipt and insist it succeeded.
+ *
+ * `sendAndWaitForPromise()` resolves to an `InjectedTxReceipt` whose reply lives
+ * behind the `promise` getter, or (legacy shape) to the reply itself. Neither
+ * exposes `code.isError`, so the obvious-looking `receipt.code?.isError` check is
+ * always undefined and every on-chain rejection reads as success. Programs use
+ * `#[export(unwrap_result)]`, which panics on `Err`, so a rejected command comes
+ * back as an error reply code with the state rolled back.
+ */
+function assertInjectedSuccess(receipt: unknown, context: string): Hex | undefined {
+  if (!receipt || typeof receipt !== "object") {
+    throw new Error(`${context}: node returned no receipt`);
+  }
+
+  const candidate = receipt as {
+    error?: string | null;
+    promise?: { payload?: Hex; code?: unknown };
+    payload?: Hex;
+    code?: unknown;
+  };
+
+  // A purged transaction never executed. Reading `promise` would throw.
+  if (typeof candidate.error === "string" && candidate.error.length > 0) {
+    throw new Error(`${context} was dropped before execution: ${candidate.error}`);
+  }
+
+  const reply = candidate.promise ?? candidate;
+  const replyCode = replyCodeToHex(reply.code);
+
+  if (replyCode && !SUCCESS_REPLY_CODES.has(replyCode)) {
+    const detail = typeof reply.payload === "string" ? asUtf8(reply.payload) : "";
+    throw new Error(
+      `${context} was rejected on chain with reply code ${replyCode}` +
+        (detail ? `: ${detail}` : ""),
+    );
+  }
+
+  return typeof reply.payload === "string" ? reply.payload : undefined;
+}
+
+/**
+ * Render a reply payload for a human. Node errors arrive as UTF-8 text, while a
+ * program's own error reply is SCALE, so only decode as text when it mostly is.
+ */
 function asUtf8(payload: string): string {
   try {
-    const text = new TextDecoder().decode(bytesFromUnknown(payload));
-    // Keep only the printable run, so a SCALE blob does not become mojibake.
-    const printable = text.replace(/[^\x20-\x7e]/g, " ").trim();
-    return printable || payload.slice(0, 80);
+    const bytes = bytesFromUnknown(payload);
+    if (bytes.length === 0) {
+      return "";
+    }
+    const printable = bytes.filter((byte) => byte >= 0x20 && byte <= 0x7e).length;
+    if (printable / bytes.length < 0.8) {
+      return `payload ${payload.slice(0, 34)}...`;
+    }
+    return new TextDecoder().decode(bytes).trim();
   } catch {
-    return payload.slice(0, 80);
+    return payload.slice(0, 34);
   }
 }
 
@@ -1556,21 +1587,15 @@ export class CanvasRoom {
       payload,
       value: 0n,
     });
-    const promise = (await tx.sendAndWaitForPromise()) as {
+    const receipt = (await tx.sendAndWaitForPromise()) as {
       validateSignature: () => Promise<void>;
-      code?: { isError?: boolean; reason?: string };
-      payload?: Hex;
-      reply?: { payload?: Hex };
     };
     const shouldVerify = options?.verify ?? this.verify;
     if (shouldVerify) {
-      await promise.validateSignature();
-    }
-    if (promise.code?.isError) {
-      throw new Error(`Injected transaction failed with ${promise.code.reason ?? "unknown"}`);
+      await receipt.validateSignature();
     }
 
-    const replyPayload = extractReplyPayload(promise);
+    const replyPayload = assertInjectedSuccess(receipt, `${name}()`);
     return replyPayload ? fn.decodeResult(replyPayload) : undefined;
   }
 }
@@ -1901,21 +1926,15 @@ export class PollRoom {
       payload,
       value: 0n,
     });
-    const promise = (await tx.sendAndWaitForPromise()) as {
+    const receipt = (await tx.sendAndWaitForPromise()) as {
       validateSignature: () => Promise<void>;
-      code?: { isError?: boolean; reason?: string };
-      payload?: Hex;
-      reply?: { payload?: Hex };
     };
     const shouldVerify = options?.verify ?? this.verify;
     if (shouldVerify) {
-      await promise.validateSignature();
-    }
-    if (promise.code?.isError) {
-      throw new Error(`Injected transaction failed with ${promise.code.reason ?? "unknown"}`);
+      await receipt.validateSignature();
     }
 
-    const replyPayload = extractReplyPayload(promise);
+    const replyPayload = assertInjectedSuccess(receipt, `${name}()`);
     return replyPayload ? fn.decodeResult(replyPayload) : undefined;
   }
 }
@@ -2240,21 +2259,15 @@ export class FthRoom {
       payload,
       value: 0n,
     });
-    const promise = (await tx.sendAndWaitForPromise()) as {
+    const receipt = (await tx.sendAndWaitForPromise()) as {
       validateSignature: () => Promise<void>;
-      code?: { isError?: boolean; reason?: string };
-      payload?: Hex;
-      reply?: { payload?: Hex };
     };
     const shouldVerify = options?.verify ?? this.verify;
     if (shouldVerify) {
-      await promise.validateSignature();
-    }
-    if (promise.code?.isError) {
-      throw new Error(`Injected transaction failed with ${promise.code.reason ?? "unknown"}`);
+      await receipt.validateSignature();
     }
 
-    const replyPayload = extractReplyPayload(promise);
+    const replyPayload = assertInjectedSuccess(receipt, `${name}()`);
     return replyPayload ? fn.decodeResult(replyPayload) : undefined;
   }
 }

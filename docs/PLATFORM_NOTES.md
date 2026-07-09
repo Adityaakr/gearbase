@@ -298,3 +298,28 @@ so program creation and the wVARA top-up are a single transaction
 separate mirror `sendMessage`.
 
 Evidence type: measured on chain.
+
+## Q2 answered: a zero-balance sender can write via injected transactions
+
+Measured on the live poll room, 2026-07-10. A freshly generated burner
+(`0x8CD62441bC0adFefa811b28E7f7c3e92C32C1342`, 0 ETH and 0 wVARA) successfully executed `Join` and
+`Vote`. Injected transactions are paid out of the target program's executable balance, not the
+sender's account, so a room sponsor funds its participants' writes.
+
+This closes Q2's "fresh zero-balance empirical check still pending".
+
+## Q4 refined: per-write cost, and rejected writes are nearly free
+
+Measured across nine messages on the live poll room.
+
+- a successful write costs about `0.17 wVARA`
+- a rejected write costs approximately nothing: `#[export(unwrap_result)]` panics, gear rolls the
+  state back, and the executable balance is left effectively untouched
+- so a `1 wVARA` executable balance buys on the order of six successful writes
+
+Caution when reading the balance: **the executable balance settles asynchronously.** Immediately
+after `sponsor()`, both `room.fuel()` and `ethexe query` still report the pre-top-up figure, and they
+catch up once validators apply the state transition. Two readings taken seconds apart can differ by
+exactly the sponsored amount. Do not treat a stale reading as a bug.
+
+Evidence type: measured on chain.

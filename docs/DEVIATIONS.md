@@ -134,3 +134,20 @@ Use this format:
 - fix: callers that know their template pass it. `open()` does not, so it probes each template until
   one answers (`detectRoomProgram`). `runRoomQuery` now checks the reply code and surfaces the
   node's UTF-8 error text.
+
+## Injected writes silently swallowed on-chain rejections (FIXED)
+
+- status: fixed 2026-07-10, found by exercising the live poll room.
+- symptom: `room.send.Vote({ option: 9 })` on a 2-option poll returned successfully. So did a second
+  `Join()` by an existing participant. The chain correctly rejected both, but the SDK reported
+  success and returned `undefined`.
+- cause: `invokeFunction` checked `promise.code?.isError` and read `promise.payload`. The object
+  returned by `sendAndWaitForPromise()` is an `InjectedTxReceipt`, which has neither field. The reply
+  lives behind its `promise` getter, and drop reasons behind `error`. Both checks were always
+  `undefined`, so nothing ever threw and `extractReplyPayload` always returned `undefined`.
+- impact: every write in every room. A user's invalid action appeared to succeed while the chain
+  rolled it back. This is why nothing caught it: state stayed correct, only the client lied.
+- fix: `assertInjectedSuccess()` reads `receipt.error` for purged transactions, then checks the reply
+  code against `SUCCESS_REPLY_CODES` and throws with the code plus a readable payload.
+- verified on chain: `Vote(9)` and a duplicate `Join()` now throw with reply code `0x01000300`, and
+  neither advances `seq`. A valid `Vote` still succeeds and advances `seq` by exactly one.
