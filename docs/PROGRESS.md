@@ -53,7 +53,14 @@ Status: in progress while Hoodi executable-balance funding is blocked
   - join / leave / configure / close
   - event emission and ring-buffer recording
   - gtest coverage for join/pixel/since flow and invalid-color rejection
+- Implemented the first real TypeScript client layer:
+  - `@gearbase/clients` now embeds generated room IDLs and loads `SailsProgram` instances
+  - `@gearbase/sdk` now connects through the documented `@vara-eth/api` + `sails-js` flow
+  - burner / wallet / private-key identity wiring added
+  - canvas room polling, queries, and injected writes wired against the current room surface
 - Local verification:
   - `cargo test --release -p gearbase-core -p room-canvas` passes
-  - `CI=true pnpm -r typecheck` passes
-  - `CI=true pnpm -r build` passes
+  - `CI=true pnpm -r typecheck` passed before the SDK dependency update
+  - `CI=true pnpm -r build` passed before the SDK dependency update
+  - `./node_modules/.bin/tsc -p packages/clients/tsconfig.json` passes
+  - `./node_modules/.bin/tsc -p packages/sdk/tsconfig.json` passes

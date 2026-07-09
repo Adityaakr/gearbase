@@ -64,3 +64,12 @@ Use this format:
 - source:
   - local compile errors from `cargo test --release -p room-canvas`
   - `programs/room-canvas/app/src/lib.rs`
+
+## SDK scope is canvas-first
+
+- spec section: 6.1, 6.4
+- implemented behavior: `@gearbase/sdk` currently ships a real connection layer and room runtime for the `canvas` template only; `create(...)`, sponsorship flows, low-fuel monitoring, and other template-specific room clients are not implemented yet.
+- reason: the current repo has one live room IDL and one implemented program surface; building the documented injected-write/read path against that concrete room is the shortest route to a verifiable SDK baseline.
+- source:
+  - `packages/sdk/src/index.ts`
+  - `packages/clients/src/generated.ts`
