@@ -112,3 +112,40 @@ Status: locally integrated, still blocked on final Hoodi fuel-backed end-to-end 
   - host commit / reveal controls
 - `apps/showcase` is now a light-themed onchain playground for quick canvas + poll testing.
 - `@gearbase/agent-runner` now loads `agents.yaml`, joins an fth room with private-key identities, seats agents, and submits answers through an OpenAI-compatible chat endpoint.
+
+## 2026-07-10 - test hardening, deploy tooling, and two corrections
+
+Status: offline verification is now real. On-chain execution is still **zero**.
+
+Measured, not asserted:
+
+- `cargo test --workspace`: 35 passing (was 9). Added 26 rejection-path tests, so every room
+  command now has one, satisfying the rule in `AGENTS.md`. Breakdown: canvas 9, fth 14, poll 9,
+  gearbase-core 3.
+- `pnpm test`: 43 passing (was 0). Previously `packages/sdk` ran bare `vitest run` and died on
+  "No test files found", which aborted the recursive run before any app was reached. So the old
+  green was a false signal.
+- `pnpm typecheck`: 7/7 clean.
+- `pnpm smoke`: rewritten from a one-line stub into 6 read-only chain assertions. 6/6 green
+  against live Hoodi.
+- `pnpm deploy`: new. Dry run by default, `--broadcast` to upload.
+
+Two things the docs had wrong, both corrected:
+
+1. **wVARA has 12 decimals, not 18.** Measured via `decimals()` on the token, cross-checked against
+   `Router.wrappedVara()`. The 18-decimal claim was inferred from an amount, never measured. This
+   means the deployer was funded 1000 wVARA, not 0.001, and `upload` consumed all of it. Why upload
+   costs that much is still unexplained; `scripts/deploy.ts` now measures the delta.
+2. **A latent crash in `decodeCanvasSnapshot`.** `Vec<u8>` survives polkadot's `.toJSON()` as a hex
+   string, not an array, so `.map(...)` threw on every real snapshot. A type cast had silenced
+   TypeScript. Fixed, with a regression test. This is good evidence the canvas read path had never
+   run against a chain.
+
+Also disproved a suspected bug: commands that mutate state and then return `Err` do **not** leak a
+seq bump, because `#[export(unwrap_result)]` panics and gear rolls back all state on a userspace
+panic. Verified empirically. Do not "fix" that pattern.
+
+Still blocked, unchanged: deploy needs >= 1 wVARA for `executable-balance-top-up`. The deployer
+holds 0. wVARA cannot be minted or wrapped from ETH by this stack, and no faucet is documented. It
+must be sent by a human. Once funded, `pnpm deploy --broadcast` uploads all three rooms and prints
+the `VITE_*_CODE_ID` values the apps need.

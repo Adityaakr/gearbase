@@ -182,6 +182,220 @@ async fn fth_room_aborts_reveal_after_timeout() {
     assert_eq!(game.0.6, 4);
 }
 
+#[tokio::test]
+async fn fth_room_rejects_double_join() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-double-join".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+
+    let mut host = program.room();
+    let first: sails_rs::Result<u64, RoomError> = host.join("host".into(), 1).await.unwrap();
+    assert_eq!(first, Ok(1));
+
+    let second: sails_rs::Result<u64, RoomError> = host.join("host".into(), 1).await.unwrap();
+    assert!(matches!(second, Err(RoomError::AlreadyJoined)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_leave_without_join() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-leave-unjoined".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+
+    let mut host = program.room();
+    let res: sails_rs::Result<u64, RoomError> = host.leave().await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotJoined)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_configure_by_non_owner() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-configure-not-owner".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+    let program_id = program.id();
+
+    let config = room_fth_app::FthConfig {
+        reveal_tally_live: false,
+        reveal_timeout_secs: 1,
+        round_count: 2,
+        answer_max_bytes: 280,
+    };
+    let mut player = Actor::<room_fth_client::RoomFthClientProgram, _>::new(
+        env.clone().with_actor_id(PLAYER_ONE_ID.into()),
+        program_id,
+    )
+    .room();
+    let res: sails_rs::Result<u64, RoomError> = player.configure(config.encode()).await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotOwner)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_close_by_non_owner() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-close-not-owner".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+    let program_id = program.id();
+
+    let mut player = Actor::<room_fth_client::RoomFthClientProgram, _>::new(
+        env.clone().with_actor_id(PLAYER_ONE_ID.into()),
+        program_id,
+    )
+    .room();
+    let res: sails_rs::Result<u64, RoomError> = player.close_room().await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotOwner)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_sit_on_occupied_seat() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-seat-occupied".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+    let program_id = program.id();
+
+    let mut player_one = Actor::<room_fth_client::RoomFthClientProgram, _>::new(
+        env.clone().with_actor_id(PLAYER_ONE_ID.into()),
+        program_id,
+    )
+    .room();
+    let mut player_two = Actor::<room_fth_client::RoomFthClientProgram, _>::new(
+        env.clone().with_actor_id(PLAYER_TWO_ID.into()),
+        program_id,
+    )
+    .room();
+
+    let _: sails_rs::Result<u64, RoomError> = player_one.join("one".into(), 1).await.unwrap();
+    let _: sails_rs::Result<u64, RoomError> = player_two.join("two".into(), 1).await.unwrap();
+    let _: sails_rs::Result<u64, RoomError> = player_one.sit_down(0).await.unwrap();
+
+    let res: sails_rs::Result<u64, RoomError> = player_two.sit_down(0).await.unwrap();
+    assert!(matches!(res, Err(RoomError::SeatOccupied)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_host_commit_by_non_owner() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-commit-not-owner".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+    let program_id = program.id();
+
+    let mut player = Actor::<room_fth_client::RoomFthClientProgram, _>::new(
+        env.clone().with_actor_id(PLAYER_ONE_ID.into()),
+        program_id,
+    )
+    .room();
+    let res: sails_rs::Result<u64, RoomError> = player.host_commit([0u8; 32]).await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotOwner)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_start_round_by_non_owner() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-start-not-owner".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+    let program_id = program.id();
+
+    let mut player = Actor::<room_fth_client::RoomFthClientProgram, _>::new(
+        env.clone().with_actor_id(PLAYER_ONE_ID.into()),
+        program_id,
+    )
+    .room();
+    let res: sails_rs::Result<u64, RoomError> = player.start_round("prompt".into()).await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotOwner)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_submit_answer_wrong_phase() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-answer-phase".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+
+    // Still in Lobby, so answering is not allowed.
+    let mut host = program.room();
+    let res: sails_rs::Result<u64, RoomError> = host.submit_answer("nope".into()).await.unwrap();
+    assert!(matches!(res, Err(RoomError::WrongPhase)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_open_voting_wrong_phase() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-open-phase".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+
+    let mut host = program.room();
+    let res: sails_rs::Result<u64, RoomError> = host.open_voting().await.unwrap();
+    assert!(matches!(res, Err(RoomError::WrongPhase)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_cast_vote_wrong_phase() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-cast-phase".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+
+    // seat 0 is in bounds, so the phase gate is what rejects.
+    let mut host = program.room();
+    let res: sails_rs::Result<u64, RoomError> = host.cast_vote(0).await.unwrap();
+    assert!(matches!(res, Err(RoomError::WrongPhase)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_reveal_wrong_phase() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-reveal-phase".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+
+    let mut host = program.room();
+    let res: sails_rs::Result<u64, RoomError> = host.reveal(0, [0u8; 32]).await.unwrap();
+    assert!(matches!(res, Err(RoomError::WrongPhase)));
+}
+
+#[tokio::test]
+async fn fth_room_rejects_abort_reveal_wrong_phase() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_fth_client::RoomFthClientProgram>(code_id, b"fth-abort-phase".to_vec())
+        .create(false, 1, 2, 280)
+        .await
+        .unwrap();
+
+    let mut host = program.room();
+    let res: sails_rs::Result<u64, RoomError> = host.abort_reveal().await.unwrap();
+    assert!(matches!(res, Err(RoomError::WrongPhase)));
+}
+
 fn create_env() -> (GtestEnv, CodeId) {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");

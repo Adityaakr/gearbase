@@ -20,16 +20,27 @@ Use this format:
   - `vendor/vara-eth-skills/examples/escrow/README.md`
   - `cargo sails sol --help`
 
-## wVARA decimals conflict
+## wVARA decimals conflict (RESOLVED: 12 decimals)
 
 - spec section: 1, 5.5, 6.5, 13
-- implemented behavior: no sponsor-UX math or top-up estimation was encoded yet because the source-of-truth currently conflicts on decimals.
-- reason: vendored skills/playbooks say `12` decimals while current official docs say `18` decimals.
+- status: resolved on 2026-07-10 by querying the token contract directly.
+- conclusion: **wVARA has 12 decimals.** `1 wVARA = 1_000_000_000_000` base units.
+- evidence:
+  - `decimals()` on `0xE1ab85A8B4d5d5B6af0bbD0203EB322DF33d0464` returns `0x0c` (12).
+  - `Router.wrappedVara()` on `0xE549b0AfEdA978271FF7E712232B9F7f39A0b060` returns that same
+    token address, so it is the token the protocol actually uses.
+  - the vendored playbook agrees: `vendor/vara-eth-skills/playbooks/vara-eth-ethexe-cli-workflow.md:31`
+- the `18`-decimal reading came from wiki prose, not from the contract. The contract wins.
+- consequence: the earlier note that the deployer was funded `0.001 wVARA` was wrong. The funding
+  tx `0x7bfc70ce...` moved `1e15` raw units, which is **1000 wVARA**, and the upload tx
+  `0x2d5380...` transferred that entire balance to the Router. Why upload consumed 1000 wVARA is
+  still unexplained. `scripts/deploy.ts` now measures the wVARA delta across `upload` so the next
+  run answers it.
+- guardrail: `scripts/deploy.ts` and `scripts/smoke.ts` both assert `decimals() == 12` and refuse
+  to proceed otherwise, so a protocol change cannot silently corrupt amounts.
 - source:
-  - `vendor/vara-eth-skills/skills/vara-eth-app-builder/SKILL.md`
-  - `vendor/vara-eth-skills/playbooks/vara-eth-ethexe-cli-workflow.md`
-  - `https://wiki.vara.network/docs/vara-eth/economics/wvara-overview`
-  - `https://wiki.vara.network/docs/vara-eth/interact/funding-executable-balance`
+  - `vendor/vara-eth-skills/playbooks/vara-eth-ethexe-cli-workflow.md:31`
+  - `https://wiki.vara.network/docs/vara-eth/economics/wvara-overview` (contradicted by the chain)
 
 ## Local dev compatibility split
 

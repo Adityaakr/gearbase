@@ -9,7 +9,8 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "gen:clients": "pnpm --filter @gearbase/clients gen",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "deploy": "tsx scripts/deploy.ts"
   },
   "devDependencies": {
     "@types/node": "^24.3.1",

@@ -7,7 +7,7 @@ This file tracks unresolved platform questions and temporary gaps while executin
 - Q1. Push updates: documented answer recorded; no high-level third-party push API found.
 - Q2. Injected tx sender requirements: documented answer recorded; fresh zero-balance empirical check still pending.
 - Q3. Browser signing UX: documented/code answer recorded; no sanctioned delegation pattern found.
-- Q4. Per-message compute and payload limits: still missing empirical per-op measurement. Also blocked on wVARA decimals conflict (`12` in vendored skills vs `18` in current official docs).
+- Q4. Per-message compute and payload limits: still missing empirical per-op measurement. The wVARA decimals conflict is **resolved**: the token reports `12` decimals on chain, so `1 wVARA = 1e12` base units. See `docs/PLATFORM_NOTES.md`. Per-op cost remains unmeasured because no gearbase program has executed on chain yet.
 - Q5. Timestamps: implementation-backed answer recorded.
 - Q6. Event delivery: documented answer recorded; ring-buffer/query path remains preferred.
 - Q7. Code upload flow: documented/CLI answer recorded.

@@ -102,16 +102,34 @@ Conclusion:
   - beyond that threshold, CPU time is metered at `wvaraPerSecond`,
   - consumption is deducted from executable balance.
 - Hoodi empirical note:
-  - funding only `1000000000000000` raw units of `wVARA` was not enough for a full deploy flow,
+  - funding `1000000000000000` raw units of `wVARA` was not enough for a full deploy flow,
   - that amount was consumed during upload/validation before executable-balance top-up could happen.
 - The exact per-op cost for a Gearbase canvas write was not measured in Phase 0 because a funded compatible deploy target was not available.
-- There is a source-of-truth conflict on wVARA decimals:
-  - official current docs say `18` decimals,
-  - vendored skills/playbooks repeatedly state `12` decimals.
-- Current Hoodi behavior is consistent with the official `18`-decimal docs:
-  - funded amount received: `1000000000000000` raw units,
-  - this corresponds to `0.001 wVARA` under the official docs.
+- wVARA decimals: **resolved, the token reports `12`.** Measured 2026-07-10 by calling `decimals()`
+  on `0xE1ab85A8B4d5d5B6af0bbD0203EB322DF33d0464`, which returns `0x0c`. `Router.wrappedVara()`
+  confirms that address is the protocol's token. The wiki's `18` figure is prose and is wrong.
+- The earlier claim in this file that "current Hoodi behavior is consistent with the official
+  `18`-decimal docs" was an inference from an amount, not a measurement, and it was **incorrect**.
+  Reading the funding tx `0x7bfc70ce...` at 12 decimals: `1e15` raw = **1000 wVARA**, not
+  `0.001 wVARA`. The upload tx `0x2d5380...` then transferred that full 1000 wVARA to the Router.
+- Open: why does `upload` cost 1000 wVARA? Unexplained by any doc. `scripts/deploy.ts` snapshots the
+  deployer's wVARA balance before and after `upload` and prints the delta, so the next broadcast run
+  measures it directly.
 - Do not publish sponsor UX estimates yet; per-op cost remains unmeasured.
+
+## Ethereum RPC has no subscriptions on Hoodi
+
+- `ethexe tx upload --watch` **cannot work** against Hoodi's public Ethereum RPC.
+- Measured 2026-07-10:
+  - `https://hoodi-reth-rpc.gear-tech.io` rejects `eth_subscribe` with `-32603 Internal error`.
+  - `wss://hoodi-reth-rpc.gear-tech.io/ws` answers `HTTP/2 403`.
+- Therefore the validation gate must poll `Router.codeState(bytes32)` (selector `0xc13911e8`),
+  where `2` means Validated. Selector verified against the live Router: it returns `0` for an
+  unknown code id, while a bogus selector reverts.
+- This matches `vendor/vara-eth-skills/references/error-log.md:237-273`.
+- `scripts/deploy.ts` implements the polling path and never passes `--watch`.
+
+Evidence type: measured against Hoodi on 2026-07-10.
 
 Sources:
 

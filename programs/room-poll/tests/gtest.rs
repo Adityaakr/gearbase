@@ -67,6 +67,131 @@ async fn poll_room_rejects_invalid_option() {
     assert!(matches!(invalid, Err(RoomError::InvalidBounds)));
 }
 
+#[tokio::test]
+async fn poll_room_rejects_double_join() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_poll_client::RoomPollClientProgram>(code_id, b"poll-double-join".to_vec())
+        .create("Pick one".into(), vec!["A".into(), "B".into()], false, 0)
+        .await
+        .unwrap();
+
+    let alice_env = env.clone().with_actor_id(ALICE_ID.into());
+    let mut room = program.with_env(&alice_env).room();
+    let first: sails_rs::Result<u64, RoomError> = room.join("alice".into(), 1).await.unwrap();
+    assert_eq!(first, Ok(1));
+
+    let second: sails_rs::Result<u64, RoomError> = room.join("alice".into(), 1).await.unwrap();
+    assert!(matches!(second, Err(RoomError::AlreadyJoined)));
+}
+
+#[tokio::test]
+async fn poll_room_rejects_leave_without_join() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_poll_client::RoomPollClientProgram>(code_id, b"poll-leave-unjoined".to_vec())
+        .create("Pick one".into(), vec!["A".into(), "B".into()], false, 0)
+        .await
+        .unwrap();
+
+    let alice_env = env.clone().with_actor_id(ALICE_ID.into());
+    let mut room = program.with_env(&alice_env).room();
+    let res: sails_rs::Result<u64, RoomError> = room.leave().await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotJoined)));
+}
+
+#[tokio::test]
+async fn poll_room_rejects_configure_by_non_owner() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_poll_client::RoomPollClientProgram>(
+            code_id,
+            b"poll-configure-not-owner".to_vec(),
+        )
+        .create("Pick one".into(), vec!["A".into(), "B".into()], false, 0)
+        .await
+        .unwrap();
+
+    let config = room_poll_app::PollConfig {
+        question: "Pick one".into(),
+        options: vec!["A".into(), "B".into()],
+        ends_at: None,
+    };
+    let alice_env = env.clone().with_actor_id(ALICE_ID.into());
+    let mut room = program.with_env(&alice_env).room();
+    let res: sails_rs::Result<u64, RoomError> = room.configure(config.encode()).await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotOwner)));
+}
+
+#[tokio::test]
+async fn poll_room_rejects_close_by_non_owner() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_poll_client::RoomPollClientProgram>(code_id, b"poll-close-not-owner".to_vec())
+        .create("Pick one".into(), vec!["A".into(), "B".into()], false, 0)
+        .await
+        .unwrap();
+
+    let alice_env = env.clone().with_actor_id(ALICE_ID.into());
+    let mut room = program.with_env(&alice_env).room();
+    let res: sails_rs::Result<u64, RoomError> = room.close_room().await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotOwner)));
+}
+
+#[tokio::test]
+async fn poll_room_rejects_vote_without_join() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_poll_client::RoomPollClientProgram>(code_id, b"poll-vote-unjoined".to_vec())
+        .create("Pick one".into(), vec!["A".into(), "B".into()], false, 0)
+        .await
+        .unwrap();
+
+    let alice_env = env.clone().with_actor_id(ALICE_ID.into());
+    let mut room = program.with_env(&alice_env).room();
+    // option 0 is in bounds, so the participant gate is what rejects.
+    let res: sails_rs::Result<u64, RoomError> = room.vote(0).await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotJoined)));
+}
+
+#[tokio::test]
+async fn poll_room_rejects_vote_after_close() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_poll_client::RoomPollClientProgram>(code_id, b"poll-vote-closed".to_vec())
+        .create("Pick one".into(), vec!["A".into(), "B".into()], false, 0)
+        .await
+        .unwrap();
+
+    let alice_env = env.clone().with_actor_id(ALICE_ID.into());
+    let mut owner_room = program.room();
+    let mut alice_room = program.with_env(&alice_env).room();
+
+    let _: sails_rs::Result<u64, RoomError> = alice_room.join("alice".into(), 1).await.unwrap();
+    let _: sails_rs::Result<u64, RoomError> = owner_room.close_room().await.unwrap();
+
+    let res: sails_rs::Result<u64, RoomError> = alice_room.vote(0).await.unwrap();
+    assert!(matches!(res, Err(RoomError::Closed)));
+}
+
+#[tokio::test]
+async fn poll_room_rejects_vote_after_deadline() {
+    let (env, code_id) = create_env();
+    // ends_at = 1ms is in the far past relative to the gtest wall-clock timestamp.
+    let program = env
+        .deploy::<room_poll_client::RoomPollClientProgram>(code_id, b"poll-vote-deadline".to_vec())
+        .create("Pick one".into(), vec!["A".into(), "B".into()], true, 1)
+        .await
+        .unwrap();
+
+    let alice_env = env.clone().with_actor_id(ALICE_ID.into());
+    let mut room = program.with_env(&alice_env).room();
+    let _: sails_rs::Result<u64, RoomError> = room.join("alice".into(), 1).await.unwrap();
+
+    let res: sails_rs::Result<u64, RoomError> = room.vote(0).await.unwrap();
+    assert!(matches!(res, Err(RoomError::InvalidConfig)));
+}
+
 fn create_env() -> (GtestEnv, CodeId) {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");

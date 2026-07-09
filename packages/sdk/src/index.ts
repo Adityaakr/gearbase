@@ -330,13 +330,13 @@ type IdentitySession = {
 
 type ConnectedProgram = Awaited<ReturnType<typeof loadRoomProgram>>;
 
-const HOODI_DEFAULTS = {
+export const HOODI_DEFAULTS = {
   ethereumRpc: "https://hoodi-reth-rpc.gear-tech.io",
   varaEthRpc: "wss://vara-eth-validator-1.gear-tech.io",
   routerAddress: "0xE549b0AfEdA978271FF7E712232B9F7f39A0b060" as Address,
 } as const;
 
-const SUCCESS_REPLY_CODES = new Set(["0x00000000", "0x00010000"]);
+export const SUCCESS_REPLY_CODES = new Set(["0x00000000", "0x00010000"]);
 
 function registryWithCanvasTypes(): TypeRegistry {
   const registry = new TypeRegistry();
@@ -391,7 +391,7 @@ function normalizeAddress(value: unknown): Address {
   return toHex(bytesFromUnknown(value), { size: 32 }) as Address;
 }
 
-function normalizeParticipantKind(value: number): ParticipantKind {
+export function normalizeParticipantKind(value: number): ParticipantKind {
   switch (value) {
     case 1:
       return "human";
@@ -402,7 +402,7 @@ function normalizeParticipantKind(value: number): ParticipantKind {
   }
 }
 
-function participantKindCode(kind: ParticipantKind | undefined): number {
+export function participantKindCode(kind: ParticipantKind | undefined): number {
   switch (kind) {
     case "human":
       return 1;
@@ -430,7 +430,7 @@ function browserWallet(): EIP1193Provider {
   return wallet;
 }
 
-function resolveNetworkConfig(options: GearbaseConnectOptions) {
+export function resolveNetworkConfig(options: GearbaseConnectOptions) {
   if (options.network === "testnet") {
     return {
       ethereumRpc: options.ethereumRpc ?? HOODI_DEFAULTS.ethereumRpc,
@@ -561,7 +561,7 @@ function assertWritableIdentity(identity: GearbaseIdentity, operation: string): 
   }
 }
 
-function assertSuccessReplyCode(replyCode: string, context: string): void {
+export function assertSuccessReplyCode(replyCode: string, context: string): void {
   const normalized = replyCode.toLowerCase();
   if (!SUCCESS_REPLY_CODES.has(normalized)) {
     throw new Error(`${context} failed with reply code ${replyCode}`);
@@ -604,7 +604,7 @@ async function sponsorProgram(
   await topUpTx.sendAndWaitForReceipt();
 }
 
-function decodeCanvasConfigBlob(configBlob: Uint8Array): CanvasConfig {
+export function decodeCanvasConfigBlob(configBlob: Uint8Array): CanvasConfig {
   const registry = new TypeRegistry();
   const decoded = registry
     .createType("(u16,u16,u16,u16)", asHex(configBlob))
@@ -618,7 +618,7 @@ function decodeCanvasConfigBlob(configBlob: Uint8Array): CanvasConfig {
   };
 }
 
-function encodeCanvasConfigBlob(config: CanvasConfig): Uint8Array {
+export function encodeCanvasConfigBlob(config: CanvasConfig): Uint8Array {
   const registry = new TypeRegistry();
   const encoded = registry
     .createType("(u16,u16,u16,u16)", [
@@ -632,11 +632,13 @@ function encodeCanvasConfigBlob(config: CanvasConfig): Uint8Array {
   return Uint8Array.from(encoded);
 }
 
-function decodeCanvasSnapshot(snapshot: Uint8Array): CanvasState {
+export function decodeCanvasSnapshot(snapshot: Uint8Array): CanvasState {
   const registry = new TypeRegistry();
+  // `Vec<u8>` survives `.toJSON()` as a hex string, not an array, so route the
+  // pixel blob through `bytesFromUnknown` rather than indexing it directly.
   const decoded = registry
     .createType("((u16,u16,u16,u16), Vec<u8>)", asHex(snapshot))
-    .toJSON() as [[number, number, number, number], number[]];
+    .toJSON() as [[number, number, number, number], unknown];
 
   return {
     config: {
@@ -645,11 +647,11 @@ function decodeCanvasSnapshot(snapshot: Uint8Array): CanvasState {
       paletteSize: Number(decoded[0][2]),
       cooldownSecs: Number(decoded[0][3]),
     },
-    pixels: Uint8Array.from(decoded[1].map((value) => Number(value))),
+    pixels: bytesFromUnknown(decoded[1]),
   };
 }
 
-function decodePollConfigBlob(configBlob: Uint8Array): PollConfig {
+export function decodePollConfigBlob(configBlob: Uint8Array): PollConfig {
   const registry = new TypeRegistry();
   const decoded = registry
     .createType("(String,Vec<String>,Option<u64>)", asHex(configBlob))
@@ -662,7 +664,7 @@ function decodePollConfigBlob(configBlob: Uint8Array): PollConfig {
   };
 }
 
-function encodePollConfigBlob(config: PollConfig): Uint8Array {
+export function encodePollConfigBlob(config: PollConfig): Uint8Array {
   const registry = new TypeRegistry();
   const encoded = registry
     .createType("(String,Vec<String>,Option<u64>)", [
@@ -675,7 +677,7 @@ function encodePollConfigBlob(config: PollConfig): Uint8Array {
   return Uint8Array.from(encoded);
 }
 
-function decodeFthConfigBlob(configBlob: Uint8Array): FthConfig {
+export function decodeFthConfigBlob(configBlob: Uint8Array): FthConfig {
   const registry = new TypeRegistry();
   const decoded = registry
     .createType("(bool,u64,u16,u16)", asHex(configBlob))
@@ -689,7 +691,7 @@ function decodeFthConfigBlob(configBlob: Uint8Array): FthConfig {
   };
 }
 
-function encodeFthConfigBlob(config: FthConfig): Uint8Array {
+export function encodeFthConfigBlob(config: FthConfig): Uint8Array {
   const registry = new TypeRegistry();
   const encoded = registry
     .createType("(bool,u64,u16,u16)", [
@@ -898,7 +900,7 @@ function decodeFthEvent(raw: Uint8Array): FthRoomEvent {
   }
 }
 
-function decodeFthPhase(code: number): FthPhase {
+export function decodeFthPhase(code: number): FthPhase {
   switch (code) {
     case 1:
       return "answering";
@@ -985,7 +987,7 @@ function decodeFthState(
   };
 }
 
-function applyCanvasEvent(state: CanvasState, event: CanvasRoomEvent): CanvasState {
+export function applyCanvasEvent(state: CanvasState, event: CanvasRoomEvent): CanvasState {
   if (event.type !== "PixelPlaced") {
     return state;
   }

@@ -52,6 +52,150 @@ async fn canvas_room_rejects_invalid_color() {
     assert!(matches!(invalid, Err(RoomError::InvalidColor)));
 }
 
+#[tokio::test]
+async fn canvas_room_rejects_double_join() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_canvas_client::RoomCanvasClientProgram>(
+            code_id,
+            b"canvas-double-join".to_vec(),
+        )
+        .create(8, 8, 16, 0)
+        .await
+        .unwrap();
+
+    let user_env = env.clone().with_actor_id(USER_ID.into());
+    let mut room = program.with_env(&user_env).room();
+    let first: sails_rs::Result<u64, RoomError> = room.join("alice".into(), 1).await.unwrap();
+    assert_eq!(first, Ok(1));
+
+    let second: sails_rs::Result<u64, RoomError> = room.join("alice".into(), 1).await.unwrap();
+    assert!(matches!(second, Err(RoomError::AlreadyJoined)));
+}
+
+#[tokio::test]
+async fn canvas_room_rejects_leave_without_join() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_canvas_client::RoomCanvasClientProgram>(
+            code_id,
+            b"canvas-leave-unjoined".to_vec(),
+        )
+        .create(8, 8, 16, 0)
+        .await
+        .unwrap();
+
+    let user_env = env.clone().with_actor_id(USER_ID.into());
+    let mut room = program.with_env(&user_env).room();
+    let res: sails_rs::Result<u64, RoomError> = room.leave().await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotJoined)));
+}
+
+#[tokio::test]
+async fn canvas_room_rejects_configure_by_non_owner() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_canvas_client::RoomCanvasClientProgram>(
+            code_id,
+            b"canvas-configure-not-owner".to_vec(),
+        )
+        .create(8, 8, 16, 0)
+        .await
+        .unwrap();
+
+    let config = room_canvas_app::CanvasConfig {
+        width: 8,
+        height: 8,
+        palette_size: 16,
+        cooldown_secs: 0,
+    };
+    let user_env = env.clone().with_actor_id(USER_ID.into());
+    let mut room = program.with_env(&user_env).room();
+    let res: sails_rs::Result<u64, RoomError> = room.configure(config.encode()).await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotOwner)));
+}
+
+#[tokio::test]
+async fn canvas_room_rejects_close_by_non_owner() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_canvas_client::RoomCanvasClientProgram>(
+            code_id,
+            b"canvas-close-not-owner".to_vec(),
+        )
+        .create(8, 8, 16, 0)
+        .await
+        .unwrap();
+
+    let user_env = env.clone().with_actor_id(USER_ID.into());
+    let mut room = program.with_env(&user_env).room();
+    let res: sails_rs::Result<u64, RoomError> = room.close_room().await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotOwner)));
+}
+
+#[tokio::test]
+async fn canvas_room_rejects_place_without_join() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_canvas_client::RoomCanvasClientProgram>(
+            code_id,
+            b"canvas-place-unjoined".to_vec(),
+        )
+        .create(8, 8, 16, 0)
+        .await
+        .unwrap();
+
+    let user_env = env.clone().with_actor_id(USER_ID.into());
+    let mut room = program.with_env(&user_env).room();
+    let res: sails_rs::Result<u64, RoomError> = room.place_pixel(0, 0, 0).await.unwrap();
+    assert!(matches!(res, Err(RoomError::NotJoined)));
+}
+
+#[tokio::test]
+async fn canvas_room_rejects_out_of_bounds_pixel() {
+    let (env, code_id) = create_env();
+    let program = env
+        .deploy::<room_canvas_client::RoomCanvasClientProgram>(
+            code_id,
+            b"canvas-out-of-bounds".to_vec(),
+        )
+        .create(8, 8, 16, 0)
+        .await
+        .unwrap();
+
+    let user_env = env.clone().with_actor_id(USER_ID.into());
+    let mut room = program.with_env(&user_env).room();
+    let _: sails_rs::Result<u64, RoomError> = room.join(String::new(), 0).await.unwrap();
+
+    // x == width is one past the last valid column.
+    let res: sails_rs::Result<u64, RoomError> = room.place_pixel(8, 0, 0).await.unwrap();
+    assert!(matches!(res, Err(RoomError::InvalidBounds)));
+}
+
+#[tokio::test]
+async fn canvas_room_rejects_place_during_cooldown() {
+    let (env, code_id) = create_env();
+    // Large cooldown so a second placement in the next block is still blocked.
+    let program = env
+        .deploy::<room_canvas_client::RoomCanvasClientProgram>(
+            code_id,
+            b"canvas-cooldown".to_vec(),
+        )
+        .create(8, 8, 16, 65535)
+        .await
+        .unwrap();
+
+    let user_env = env.clone().with_actor_id(USER_ID.into());
+    let mut room = program.with_env(&user_env).room();
+    let _: sails_rs::Result<u64, RoomError> = room.join(String::new(), 0).await.unwrap();
+
+    let first: sails_rs::Result<u64, RoomError> = room.place_pixel(0, 0, 0).await.unwrap();
+    assert!(first.is_ok());
+
+    let second: sails_rs::Result<u64, RoomError> = room.place_pixel(1, 0, 0).await.unwrap();
+    assert!(matches!(second, Err(RoomError::CooldownActive { .. })));
+}
+
 fn create_env() -> (GtestEnv, CodeId) {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
