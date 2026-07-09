@@ -1,0 +1,289 @@
+:root {
+  color: #e5edf6;
+  background: #0b1020;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 30%),
+    #0b1020;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.poll-app {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.poll-shell {
+  width: min(880px, 100%);
+  display: grid;
+  gap: 20px;
+}
+
+.poll-header,
+.room-bar,
+.stats-grid,
+.poll-card,
+.error-banner {
+  background: rgba(9, 14, 28, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+}
+
+.poll-header,
+.room-bar,
+.poll-card,
+.error-banner {
+  padding: 20px;
+}
+
+.poll-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.poll-header h1 {
+  margin: 8px 0 0;
+  font-size: 28px;
+}
+
+.eyebrow,
+.room-field span,
+.poll-meta span,
+.stats-grid span,
+.actions__hint {
+  color: #94a3b8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.status-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.status-pill--ready {
+  background: rgba(34, 197, 94, 0.18);
+  color: #bbf7d0;
+}
+
+.status-pill--connecting {
+  background: rgba(56, 189, 248, 0.18);
+  color: #bae6fd;
+}
+
+.status-pill--error {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecaca;
+}
+
+.room-bar {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+}
+
+.identity-switch {
+  display: flex;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 4px;
+  gap: 4px;
+}
+
+.identity-switch button,
+.secondary-button {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.12);
+  color: inherit;
+}
+
+.identity-switch .is-active {
+  background: rgba(56, 189, 248, 0.24);
+  color: #bae6fd;
+}
+
+.room-field {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.room-field input,
+.room-field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+  color: inherit;
+}
+
+.room-field textarea {
+  resize: vertical;
+  min-height: 112px;
+}
+
+.primary-button {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  color: white;
+}
+
+.primary-button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+}
+
+.stats-grid article {
+  padding: 16px 18px;
+  background: rgba(9, 14, 28, 0.88);
+  display: grid;
+  gap: 8px;
+}
+
+.stats-grid strong {
+  font-size: 16px;
+}
+
+.poll-card {
+  display: grid;
+  gap: 18px;
+}
+
+.create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.room-field--wide {
+  grid-column: 1 / -1;
+}
+
+.poll-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.poll-meta strong {
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.option-list {
+  display: grid;
+  gap: 12px;
+}
+
+.option-card {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.option-card.is-selected {
+  border-color: rgba(56, 189, 248, 0.72);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.28);
+}
+
+.option-card__top,
+.option-card__bottom,
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.option-card__bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, 0.88);
+  overflow: hidden;
+}
+
+.option-card__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+}
+
+.option-card__bottom {
+  color: #94a3b8;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.error-banner {
+  color: #fecaca;
+}
+
+.empty-state {
+  padding: 24px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #94a3b8;
+}
+
+@media (max-width: 720px) {
+  .poll-header,
+  .room-bar,
+  .actions,
+  .stats-grid,
+  .create-grid {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .status-pill {
+    justify-self: start;
+  }
+
+  .stats-grid {
+    gap: 1px;
+  }
+}
